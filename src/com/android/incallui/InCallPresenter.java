@@ -674,6 +674,10 @@ public class InCallPresenter implements CallList.Listener {
             mInCallActivity = null;
         }
 
+            // Check if user want to see notification as heads up.
+            isHeadsUp = Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.CALL_UI_AS_HEADS_UP, 1) == 1;
+
            boolean nonIntrusiveDisabled = Settings.System.getInt(mContext.getContentResolver(),
                 Settings.System.NON_INTRUSIVE_INCALL, 1) == 0;
 
@@ -694,7 +698,7 @@ public class InCallPresenter implements CallList.Listener {
      */
      public void startIncomingCallUi(InCallState inCallState, boolean isCallUiInBackground) {
         mCallUiInBackground = isCallUiInBackground;
-        mStatusBarNotifier.updateNotificationAndLaunchIncomingCallUi(inCallState, mCallList, isCallUiInBackground);
+        mStatusBarNotifier.updateNotificationAndLaunchIncomingCallUi(inCallState, mCallList, isCallUiInBackground, isHeadsUp);
     }
 
  /**
@@ -706,7 +710,7 @@ public class InCallPresenter implements CallList.Listener {
         // First cancel the actual notification and then update
         mStatusBarNotifier.cancelInCall();
         mStatusBarNotifier.updateNotificationAndLaunchIncomingCallUi(
-                InCallState.INCALL, mCallList, false);
+                InCallState.INCALL, mCallList, false, false);
     }
  
    /**
