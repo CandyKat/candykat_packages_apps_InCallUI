@@ -57,7 +57,6 @@ public class InCallPresenter implements CallList.Listener {
     private Context mContext;
     private CallList mCallList;
     private InCallActivity mInCallActivity;
-    private InCallCardActivity mInCallCardActivity;
     private InCallState mInCallState = InCallState.NO_CALLS;
     private AccelerometerListener mAccelerometerListener;
     private ProximitySensor mProximitySensor;
@@ -664,10 +663,6 @@ public class InCallPresenter implements CallList.Listener {
             mInCallActivity = null;
         }
 
-            // Check if user want to see notification as heads up.
-            isHeadsUp = Settings.System.getInt(mContext.getContentResolver(),
-                    Settings.System.CALL_UI_AS_HEADS_UP, 1) == 1;
-
         // check if the user want to have the call UI in background and set it up
         mCallUiInBackground = Settings.System.getInt(mContext.getContentResolver(),
                 Settings.System.CALL_UI_IN_BACKGROUND, 0) == 1;
@@ -699,10 +694,10 @@ public class InCallPresenter implements CallList.Listener {
         // First cancel the actual notification and then update
         mStatusBarNotifier.cancelInCall();
         mStatusBarNotifier.updateNotificationAndLaunchIncomingCallUi(
-                InCallState.INCALL, mCallList, false, false);
+                InCallState.INCALL, mCallList, false);
     }
  
-    /**
+   /**
      * Checks to see if both the UI is gone and the service is disconnected. If so, tear it all
      * down.
      */
