@@ -176,10 +176,6 @@ public class StatusBarNotifier implements InCallPresenter.InCallStateListener {
         updateInCallNotification(true, state, callList);
     }
 
-    public boolean getIsCallUiInBackground() {
-        return mIsCallUiInBackground;
-    }
-
     /**
      * Take down the in-call notification.
      * @see #updateInCallNotification(boolean,InCallState,CallList)

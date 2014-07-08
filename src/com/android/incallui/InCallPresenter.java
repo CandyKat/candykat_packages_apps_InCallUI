@@ -21,13 +21,13 @@ import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
 
 import android.content.Context;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.provider.Settings;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.view.IWindowManager;
+
 import com.android.services.telephony.common.Call;
 import com.android.services.telephony.common.Call.Capabilities;
 import com.google.common.collect.Lists;
@@ -139,22 +139,12 @@ public class InCallPresenter implements CallList.Listener {
     }
 
     private void attemptFinishActivity() {
-        // Finish our presenter card in all cases, we won't need it anymore whatever might
-        // happen.
-        if (mInCallCardActivity != null) {
-            mInCallCardActivity.finish();
-        }
-
         final boolean doFinish = (mInCallActivity != null && isActivityStarted());
         Log.i(this, "Hide in call UI: " + doFinish);
 
         if (doFinish) {
             mInCallActivity.finish();
         }
-    }
-
-    public void setCardActivity(InCallCardActivity inCallCardActivity) {
-        mInCallCardActivity = inCallCardActivity;
     }
 
     /**
@@ -678,30 +668,29 @@ public class InCallPresenter implements CallList.Listener {
             isHeadsUp = Settings.System.getInt(mContext.getContentResolver(),
                     Settings.System.CALL_UI_AS_HEADS_UP, 1) == 1;
 
-           boolean nonIntrusiveDisabled = Settings.System.getInt(mContext.getContentResolver(),
-                Settings.System.NON_INTRUSIVE_INCALL, 1) == 0;
+        // check if the user want to have the call UI in background and set it up
+        mCallUiInBackground = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.CALL_UI_IN_BACKGROUND, 0) == 1;
 
-        final PowerManager pm = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
-        // If the screen is on, we'll prefer to not interrupt the user too much and slide in a card
-        if (pm.isScreenOn() && !nonIntrusiveDisabled) {
-            Intent intent = new Intent(mContext, InCallCardActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            mContext.startActivity(intent);
-       } else {
-            mStatusBarNotifier.updateNotificationAndLaunchIncomingCallUi(inCallState, mCallList,    false);
-            mCallUiInBackground = mStatusBarNotifier.getIsCallUiInBackground();
+        if (mCallUiInBackground) {
+            // get power service to check later if screen is on
+            final PowerManager pm = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
+            // check if keyguard is currently shown
+            final IWindowManager windowManagerService = IWindowManager.Stub.asInterface(
+                    ServiceManager.getService(Context.WINDOW_SERVICE));
+            boolean isKeyguardShowing = false;
+            try {
+                isKeyguardShowing = windowManagerService.isKeyguardLocked();
+            } catch (RemoteException e) {
+            }
+            mCallUiInBackground = pm.isScreenOn() && !isKeyguardShowing;
         }
+
+        mStatusBarNotifier.updateNotificationAndLaunchIncomingCallUi(
+                inCallState, mCallList, mCallUiInBackground);
     }
 
     /**
-     * Starts the incoming call Ui immediately, bypassing the card UI
-     */
-     public void startIncomingCallUi(InCallState inCallState, boolean isCallUiInBackground) {
-        mCallUiInBackground = isCallUiInBackground;
-        mStatusBarNotifier.updateNotificationAndLaunchIncomingCallUi(inCallState, mCallList, isCallUiInBackground, isHeadsUp);
-    }
-
- /**
      * Starts the incoming call Ui immediately used by the incoming call
      * notification sent from framework's notification mechanism
      */
@@ -713,7 +702,7 @@ public class InCallPresenter implements CallList.Listener {
                 InCallState.INCALL, mCallList, false, false);
     }
  
-   /**
+    /**
      * Checks to see if both the UI is gone and the service is disconnected. If so, tear it all
      * down.
      */
